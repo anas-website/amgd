@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper to check if admin (Simplified for Storage, usually depends on Auth state)
+    // For more robust check, you might want to check custom claims or Firestore roles via Admin SDK
+    function isAdmin() {
+      return request.auth != null; // Simplified: In a real app, check role claim
+    }
+
+    match /shower-images/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

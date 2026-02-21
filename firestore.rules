@@ -1,0 +1,42 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Shower Glass Types
+    match /showerTypes/{typeId} {
+      allow read: if true; // Publicly readable
+      allow write: if isAdmin();
+    }
+
+    // Shower Type Images
+    match /showerTypeImages/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Pricing Rules - Locations
+    match /pricingLocations/{locationId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Pricing Rules - Floors
+    match /pricingFloors/{floorId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Users collection (to store roles)
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // Role assignment should be manual or via Admin SDK
+    }
+  }
+}
