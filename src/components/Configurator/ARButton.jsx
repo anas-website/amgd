@@ -81,12 +81,11 @@ const ARButton = ({ sceneRef }) => {
 
         // Configure before connect so Lit runs one update on attach (avoids "scheduled an update after an update completed").
         const modelViewer = document.createElement('model-viewer');
-        modelViewer.ar = true;
-        modelViewer.arModes = 'webxr scene-viewer quick-look';
-        modelViewer.arPlacement = 'floor';
-        modelViewer.cameraControls = false;
+        modelViewer.setAttribute('ar', '');
+        modelViewer.setAttribute('ar-modes', 'webxr scene-viewer quick-look');
+        modelViewer.setAttribute('ar-placement', 'floor');
         modelViewer.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;';
-        modelViewer.src = url;
+        modelViewer.setAttribute('src', url);
 
         const onLoad = () => {
             modelViewer.removeEventListener('load', onLoad);
@@ -110,7 +109,7 @@ const ARButton = ({ sceneRef }) => {
         viewerRef.current = modelViewer;
     }, [sceneRef, cleanupViewer, t]);
 
-    const launchAr = useCallback(async () => {
+    const launchAr = useCallback(() => {
         const mv = viewerRef.current;
         if (!mv) {
             setPhase('idle');
@@ -118,14 +117,25 @@ const ARButton = ({ sceneRef }) => {
         }
         try {
             if (mv.canActivateAR) {
-                await mv.activateAR();
+                // Call synchronously to ensure it's within the user gesture call stack
+                const res = mv.activateAR();
+                if (res && res.catch) {
+                    res.catch((e) => {
+                        console.error('activateAR failed', e);
+                        alert(t('designer.ar.unsupported'));
+                        cleanupViewer();
+                    });
+                }
+                // Do not cleanup immediately; the external AR viewer needs time to fetch the blob URL.
+                setPhase('idle');
             } else {
                 alert(t('designer.ar.unsupported'));
+                setPhase('idle');
+                cleanupViewer();
             }
         } catch (e) {
             console.error('activateAR failed', e);
             alert(t('designer.ar.unsupported'));
-        } finally {
             setPhase('idle');
             cleanupViewer();
         }
@@ -135,7 +145,7 @@ const ARButton = ({ sceneRef }) => {
         if (phase === 'preparing') return;
 
         if (phase === 'ready') {
-            await launchAr();
+            launchAr();
             return;
         }
 
