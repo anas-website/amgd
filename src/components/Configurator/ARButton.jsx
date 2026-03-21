@@ -14,48 +14,74 @@ import { prepareSceneForGltfExport, disposeClonedScene } from '../../utils/prepa
  */
 const ARButton = ({ sceneRef }) => {
     const { t } = useI18n();
-    const [phase, setPhase] = useState('idle'); // idle | preparing | ready
+    const [phase, setPhase] = useState('idle'); // idle | preparing_export | preparing_viewer | ready
+    const [blobUrl, setBlobUrl] = useState(null);
     const viewerRef = useRef(null);
-    const blobUrlRef = useRef(null);
     const prepareGenRef = useRef(0);
 
     const dimensions = useConfiguratorStore((s) => s.dimensions);
     const glassType = useConfiguratorStore((s) => s.glassType);
     const isDoorOpen = useConfiguratorStore((s) => s.isDoorOpen);
 
+    // Reset state and cleanup blob when configuration changes
     useEffect(() => {
         prepareGenRef.current += 1;
         setPhase('idle');
-        if (blobUrlRef.current) {
-            URL.revokeObjectURL(blobUrlRef.current);
-            blobUrlRef.current = null;
-        }
-        if (viewerRef.current?.parentNode) {
-            viewerRef.current.parentNode.removeChild(viewerRef.current);
-            viewerRef.current = null;
+        if (blobUrl) {
+            URL.revokeObjectURL(blobUrl);
+            setBlobUrl(null);
         }
     }, [dimensions, glassType, isDoorOpen]);
 
-    const cleanupViewer = useCallback(() => {
-        if (blobUrlRef.current) {
-            URL.revokeObjectURL(blobUrlRef.current);
-            blobUrlRef.current = null;
-        }
-        if (viewerRef.current?.parentNode) {
-            viewerRef.current.parentNode.removeChild(viewerRef.current);
-            viewerRef.current = null;
-        }
-    }, []);
+    // Clean up blob URL on unmount
+    useEffect(() => {
+        return () => {
+            if (blobUrl) {
+                URL.revokeObjectURL(blobUrl);
+            }
+        };
+    }, [blobUrl]);
 
-    useEffect(() => () => cleanupViewer(), [cleanupViewer]);
+    // Attach listeners to model-viewer
+    useEffect(() => {
+        const mv = viewerRef.current;
+        if (!mv) return;
+
+        const handleLoad = () => {
+            setPhase((p) => (p === 'preparing_viewer' ? 'ready' : p));
+        };
+        
+        const handleError = (e) => {
+            console.error('model-viewer error', e);
+            setPhase((p) => {
+                if (p === 'preparing_viewer') {
+                    alert(t('designer.ar.exportFailed'));
+                    return 'idle';
+                }
+                return p;
+            });
+        };
+
+        mv.addEventListener('load', handleLoad);
+        mv.addEventListener('error', handleError);
+
+        // In case it already loaded before the effect ran
+        if (mv.loaded) {
+            handleLoad();
+        }
+
+        return () => {
+            mv.removeEventListener('load', handleLoad);
+            mv.removeEventListener('error', handleError);
+        };
+    }, [blobUrl, t]);
 
     const prepareModel = useCallback(async () => {
         const scene = sceneRef?.current;
         if (!scene) return;
 
         const gen = prepareGenRef.current;
-        cleanupViewer();
-        setPhase('preparing');
+        setPhase('preparing_export');
 
         const exporter = new GLTFExporter();
         const exportRoot = prepareSceneForGltfExport(scene);
@@ -77,37 +103,9 @@ const ARButton = ({ sceneRef }) => {
 
         const blob = new Blob([buffer], { type: 'model/gltf-binary' });
         const url = URL.createObjectURL(blob);
-        blobUrlRef.current = url;
-
-        // Configure before connect so Lit runs one update on attach (avoids "scheduled an update after an update completed").
-        const modelViewer = document.createElement('model-viewer');
-        modelViewer.setAttribute('ar', '');
-        modelViewer.setAttribute('ar-modes', 'webxr scene-viewer quick-look');
-        modelViewer.setAttribute('ar-placement', 'floor');
-        modelViewer.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;';
-        modelViewer.setAttribute('src', url);
-
-        const onLoad = () => {
-            modelViewer.removeEventListener('load', onLoad);
-            modelViewer.removeEventListener('error', onError);
-            if (gen !== prepareGenRef.current) return;
-            setPhase('ready');
-        };
-        const onError = () => {
-            modelViewer.removeEventListener('load', onLoad);
-            modelViewer.removeEventListener('error', onError);
-            if (gen === prepareGenRef.current) {
-                alert(t('designer.ar.exportFailed'));
-                cleanupViewer();
-                setPhase('idle');
-            }
-        };
-
-        modelViewer.addEventListener('load', onLoad);
-        modelViewer.addEventListener('error', onError);
-        document.body.appendChild(modelViewer);
-        viewerRef.current = modelViewer;
-    }, [sceneRef, cleanupViewer, t]);
+        setBlobUrl(url);
+        setPhase('preparing_viewer');
+    }, [sceneRef, t]);
 
     const launchAr = useCallback(() => {
         const mv = viewerRef.current;
@@ -123,26 +121,20 @@ const ARButton = ({ sceneRef }) => {
                     res.catch((e) => {
                         console.error('activateAR failed', e);
                         alert(t('designer.ar.unsupported'));
-                        cleanupViewer();
                     });
                 }
-                // Do not cleanup immediately; the external AR viewer needs time to fetch the blob URL.
-                setPhase('idle');
+                // We keep phase as 'ready' so the user can re-open AR without re-exporting
             } else {
                 alert(t('designer.ar.unsupported'));
-                setPhase('idle');
-                cleanupViewer();
             }
         } catch (e) {
             console.error('activateAR failed', e);
             alert(t('designer.ar.unsupported'));
-            setPhase('idle');
-            cleanupViewer();
         }
-    }, [cleanupViewer, t]);
+    }, [t]);
 
     const handleClick = async () => {
-        if (phase === 'preparing') return;
+        if (phase === 'preparing_export' || phase === 'preparing_viewer') return;
 
         if (phase === 'ready') {
             launchAr();
@@ -152,25 +144,51 @@ const ARButton = ({ sceneRef }) => {
         await prepareModel();
     };
 
-    const label =
-        phase === 'preparing'
-            ? t('designer.ar.preparing')
-            : phase === 'ready'
-              ? t('designer.ar.openAr')
-              : t('designer.ar.viewInAr');
+    const isPreparing = phase === 'preparing_export' || phase === 'preparing_viewer';
+    const label = isPreparing
+        ? t('designer.ar.preparing')
+        : phase === 'ready'
+            ? t('designer.ar.openAr')
+            : t('designer.ar.viewInAr');
 
     return (
-        <button
-            type="button"
-            onClick={handleClick}
-            disabled={phase === 'preparing'}
-            className={`glass-button flex items-center gap-2 absolute top-4 right-4 z-20 ${
-                phase === 'preparing' ? 'opacity-50 cursor-wait' : ''
-            }`}
-        >
-            <Smartphone size={20} />
-            <span>{label}</span>
-        </button>
+        <>
+            <button
+                type="button"
+                onClick={handleClick}
+                disabled={isPreparing}
+                className={`glass-button flex items-center gap-2 absolute top-4 right-4 z-20 ${
+                    isPreparing ? 'opacity-50 cursor-wait' : ''
+                }`}
+            >
+                <Smartphone size={20} />
+                <span>{label}</span>
+            </button>
+            
+            {/* 
+              Render model-viewer natively in React.
+              loading="eager" is crucial: it forces the model to load even if it's visually hidden,
+              bypassing the IntersectionObserver lazy-loading.
+            */}
+            {blobUrl && (
+                <model-viewer
+                    ref={viewerRef}
+                    src={blobUrl}
+                    ar="true"
+                    ar-modes="webxr scene-viewer quick-look"
+                    ar-placement="floor"
+                    loading="eager"
+                    style={{
+                        position: 'absolute',
+                        width: '10px',
+                        height: '10px',
+                        opacity: 0.001,
+                        pointerEvents: 'none',
+                        zIndex: -1
+                    }}
+                />
+            )}
+        </>
     );
 };
 
