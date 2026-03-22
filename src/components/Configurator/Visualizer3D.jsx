@@ -420,7 +420,9 @@ const BoxDimensionsWithExtensions = ({ center, half, widthCm, heightCm, depthCm,
     ]);
     const extOf = (id) => tiered.find((r) => r.id === id)?.extLength ?? 0.075;
 
+    console.log('place'+ ''+ place);
     if (place === 'left') {
+        console.log('place AFTER '+ ''+ place);
         // Dimensions on the right side of the left box (x = cx + hx)
         // Appearing through the glass from the front view
         const tlf = [cx - hx, cy + hy, cz + hz]; // top-left-front
@@ -458,12 +460,13 @@ const BoxDimensionsWithExtensions = ({ center, half, widthCm, heightCm, depthCm,
                 <DimensionWithExtensions
                     p1={brf}
                     p2={trf}
-                    extDir={[0, 0, 1]}
+                    extDir={[1, 0, 0]}
                     extLength={extOf('h')}
                     label={`${fmtDim(heightCm)} cm`}
                     color={color}
                     labelOffset={[0, 0, 0.02]}
                     renderOnTop={true}
+                   
                 />
             </group>
         );

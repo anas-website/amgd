@@ -40,7 +40,7 @@ export function exportConfiguratorPdfReport({
     const ih = imageHeight > 0 ? imageHeight : 9;
     const aspect = iw / ih;
     const maxW = pageW - 2 * margin;
-    const maxH = pageH - headerBottom - margin - 34;
+    const maxH = pageH - headerBottom - margin - 18;
     let imgWmm = maxW;
     let imgHmm = maxW / aspect;
     if (imgHmm > maxH) {
@@ -57,10 +57,14 @@ export function exportConfiguratorPdfReport({
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(45, 55, 72);
-    for (const line of specLines) {
-        if (specY > pageH - margin - 4) break;
-        doc.text(String(line), margin, specY);
-        specY += 4.2;
+    
+    const colWidth = maxW / 2;
+    for (let i = 0; i < specLines.length; i++) {
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const currentY = specY + (row * 4.2);
+        if (currentY > pageH - margin - 4) break;
+        doc.text(String(specLines[i]), margin + (col * colWidth), currentY);
     }
 
     doc.save(filename);
