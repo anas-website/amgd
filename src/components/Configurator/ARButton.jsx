@@ -84,10 +84,10 @@ const ARButton = ({ sceneRef }) => {
         setPhase('preparing_export');
 
         const exporter = new GLTFExporter();
-        const exportRoot = prepareSceneForGltfExport(scene);
+        const { prepared: exportRoot, animations } = prepareSceneForGltfExport(scene);
         let buffer;
         try {
-            buffer = await exporter.parseAsync(exportRoot, { binary: true });
+            buffer = await exporter.parseAsync(exportRoot, { binary: true, animations: animations.length > 0 ? animations : undefined });
         } catch (e) {
             console.error('GLTF export for AR failed', e);
             if (gen === prepareGenRef.current) {
@@ -175,7 +175,8 @@ const ARButton = ({ sceneRef }) => {
                     ref={viewerRef}
                     src={blobUrl}
                     ar="true"
-                    ar-modes="webxr scene-viewer quick-look"
+                    ar-modes="scene-viewer quick-look"
+                    ar-scale="fixed"
                     ar-placement="floor"
                     loading="eager"
                     style={{
@@ -186,7 +187,8 @@ const ARButton = ({ sceneRef }) => {
                         pointerEvents: 'none',
                         zIndex: -1
                     }}
-                />
+                >
+                </model-viewer>
             )}
         </>
     );

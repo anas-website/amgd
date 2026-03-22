@@ -196,7 +196,7 @@ const Door = ({
     const handleHoleSpacing = 0.048;
 
     return (
-        <group ref={group} position={position} rotation={rotation}>
+        <group ref={group} position={position} rotation={rotation} userData={{ isDoor: true, openAngle }}>
             {/* Pivot is at hinge side (x=0); door geometry extends left or right depending on hingeOnRight */}
             <GlassPanel
                 width={width}
@@ -347,7 +347,7 @@ const DimensionWithExtensions = ({
     };
 
     return (
-        <group renderOrder={renderOnTop ? 10 : undefined}>
+        <group renderOrder={renderOnTop ? 10 : undefined} userData={{ isDimension: true }}>
             <Line points={[p1, q1]} color={color} lineWidth={1} {...lineProps} />
             <Line points={[p2, q2]} color={color} lineWidth={1} {...lineProps} />
             <Line points={[q1, q2]} color={color} lineWidth={1} {...lineProps} />
