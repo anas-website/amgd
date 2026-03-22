@@ -23,12 +23,17 @@ const ARButton = ({ sceneRef }) => {
     const glassType = useConfiguratorStore((s) => s.glassType);
     const isDoorOpen = useConfiguratorStore((s) => s.isDoorOpen);
 
+    const currentBlobUrl = useRef(null);
+    useEffect(() => {
+        currentBlobUrl.current = blobUrl;
+    }, [blobUrl]);
+
     // Reset state and cleanup blob when configuration changes
     useEffect(() => {
         prepareGenRef.current += 1;
         setPhase('idle');
-        if (blobUrl) {
-            URL.revokeObjectURL(blobUrl);
+        if (currentBlobUrl.current) {
+            URL.revokeObjectURL(currentBlobUrl.current);
             setBlobUrl(null);
         }
     }, [dimensions, glassType, isDoorOpen]);
@@ -175,7 +180,7 @@ const ARButton = ({ sceneRef }) => {
                     ref={viewerRef}
                     src={blobUrl}
                     ar="true"
-                    ar-modes="scene-viewer quick-look"
+                    ar-modes="webxr scene-viewer quick-look"
                     ar-scale="fixed"
                     ar-placement="floor"
                     loading="eager"

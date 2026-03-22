@@ -41,14 +41,15 @@ const OptionsPanel = () => {
   } = useConfiguratorStore();
 
   const handleChange = (e, key) => {
-    setDimensions({ [key]: parseFloat(e.target.value) });
+    const val = e.target.value;
+    setDimensions({ [key]: val === '' ? '' : parseFloat(val) });
   };
 
   const handleRoomChange = (e, key) => {
     const v = e.target.value;
     if (key === 'leftWallDepth' || key === 'rightWallDepth')
       setRoomDimensions({ [key]: v === '' ? null : parseFloat(v) });
-    else setRoomDimensions({ [key]: parseFloat(v) });
+    else setRoomDimensions({ [key]: v === '' ? '' : parseFloat(v) });
   };
 
   const wallShape = glassType === 'straight' ? 'U' : 'L';
@@ -87,7 +88,7 @@ const OptionsPanel = () => {
               max="30"
               step="1"
               value={doorGapMm}
-              onChange={(e) => setAccessory('doorGapMm', Math.max(0, parseFloat(e.target.value) || 0))}
+              onChange={(e) => setAccessory('doorGapMm', e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value)))}
               className={inp}
             />
           </div>
@@ -99,7 +100,7 @@ const OptionsPanel = () => {
               max="50"
               step="1"
               value={doorBottomGapMm}
-              onChange={(e) => setAccessory('doorBottomGapMm', Math.max(0, parseFloat(e.target.value) || 0))}
+              onChange={(e) => setAccessory('doorBottomGapMm', e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value)))}
               className={inp}
             />
           </div>
@@ -114,7 +115,7 @@ const OptionsPanel = () => {
                 value={straightDoorWidthCm ?? ''}
                 onChange={(e) => {
                   const v = e.target.value;
-                  setAccessory('straightDoorWidthCm', v === '' ? null : Math.max(10, parseFloat(v) || 10));
+                  setAccessory('straightDoorWidthCm', v === '' ? null : Math.max(10, parseFloat(v)));
                 }}
                 className={inp}
               />
@@ -204,7 +205,7 @@ const OptionsPanel = () => {
                 <input
                   type="number"
                   value={wallOffset}
-                  onChange={(e) => setAccessory('wallOffset', parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setAccessory('wallOffset', e.target.value === '' ? '' : parseFloat(e.target.value))}
                   className={inp + ' text-sm py-2'}
                 />
               </div>
@@ -213,7 +214,7 @@ const OptionsPanel = () => {
                 <input
                   type="number"
                   value={wallPositionZ}
-                  onChange={(e) => setAccessory('wallPositionZ', parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setAccessory('wallPositionZ', e.target.value === '' ? '' : parseFloat(e.target.value))}
                   className={inp + ' text-sm py-2'}
                 />
               </div>
@@ -271,12 +272,12 @@ const OptionsPanel = () => {
                     {roomBoxes.map((box) => (
                       <li key={box.id} className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-black/25 text-xs">
                         <span className="text-slate-400 capitalize shrink-0">{box.place}</span>
-                        <input type="number" placeholder="x" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.x} onChange={(e) => updateRoomBox(box.id, { x: parseFloat(e.target.value) || 0 })} />
-                        <input type="number" placeholder="y" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.y} onChange={(e) => updateRoomBox(box.id, { y: parseFloat(e.target.value) || 0 })} />
-                        <input type="number" placeholder="z" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.z} onChange={(e) => updateRoomBox(box.id, { z: parseFloat(e.target.value) || 0 })} />
-                        <input type="number" placeholder="W" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.width} onChange={(e) => updateRoomBox(box.id, { width: parseFloat(e.target.value) || 10 })} />
-                        <input type="number" placeholder="H" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.height} onChange={(e) => updateRoomBox(box.id, { height: parseFloat(e.target.value) || 10 })} />
-                        <input type="number" placeholder="D" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.depth} onChange={(e) => updateRoomBox(box.id, { depth: parseFloat(e.target.value) || 10 })} />
+                        <input type="number" placeholder="x" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.x} onChange={(e) => updateRoomBox(box.id, { x: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                        <input type="number" placeholder="y" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.y} onChange={(e) => updateRoomBox(box.id, { y: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                        <input type="number" placeholder="z" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.z} onChange={(e) => updateRoomBox(box.id, { z: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                        <input type="number" placeholder="W" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.width} onChange={(e) => updateRoomBox(box.id, { width: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                        <input type="number" placeholder="H" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.height} onChange={(e) => updateRoomBox(box.id, { height: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                        <input type="number" placeholder="D" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.depth} onChange={(e) => updateRoomBox(box.id, { depth: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
                         <button type="button" onClick={() => removeRoomBox(box.id)} className="text-red-400 hover:text-red-300 shrink-0 min-w-8 min-h-8">
                           ×
                         </button>
