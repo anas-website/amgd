@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter';
-import { Smartphone } from 'lucide-react';
+import { Smartphone, Play } from 'lucide-react';
 import '@google/model-viewer';
 import { useConfiguratorStore } from '../../store/useConfiguratorStore';
 import { useI18n } from '../../i18n';
@@ -12,7 +12,7 @@ import { prepareSceneForGltfExport, disposeClonedScene } from '../../utils/prepa
  * 1) Build GLB + load in a hidden model-viewer
  * 2) User taps again to launch AR
  */
-const ARButton = ({ sceneRef }) => {
+const ARButton = ({ sceneRef, animated = false }) => {
     const { t } = useI18n();
     const [phase, setPhase] = useState('idle'); // idle | preparing_export | preparing_viewer | ready
     const [blobUrl, setBlobUrl] = useState(null);
@@ -153,8 +153,8 @@ const ARButton = ({ sceneRef }) => {
     const label = isPreparing
         ? t('designer.ar.preparing')
         : phase === 'ready'
-            ? t('designer.ar.openAr')
-            : t('designer.ar.viewInAr');
+            ? (animated ? t('designer.ar.openArAnimated') : t('designer.ar.openAr'))
+            : (animated ? t('designer.ar.viewInArAnimated') : t('designer.ar.viewInAr'));
 
     return (
         <>
@@ -162,11 +162,11 @@ const ARButton = ({ sceneRef }) => {
                 type="button"
                 onClick={handleClick}
                 disabled={isPreparing}
-                className={`glass-button flex items-center gap-2 absolute top-4 right-4 z-20 ${
+                className={`glass-button flex items-center gap-2 ${
                     isPreparing ? 'opacity-50 cursor-wait' : ''
                 }`}
             >
-                <Smartphone size={20} />
+                {animated ? <Play size={20} /> : <Smartphone size={20} />}
                 <span>{label}</span>
             </button>
             
@@ -184,6 +184,7 @@ const ARButton = ({ sceneRef }) => {
                     ar-scale="fixed"
                     ar-placement="floor"
                     loading="eager"
+                    autoplay={animated ? "true" : undefined}
                     style={{
                         position: 'absolute',
                         width: '10px',

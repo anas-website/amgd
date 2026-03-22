@@ -159,6 +159,10 @@ export const messages = {
     ar: 'تعذّر تصدير النموذج للواقع المعزّز. جرّب متصفحاً آخر.',
     he: 'ייצוא המודל ל-AR נכשל. נסו דפדפן אחר.',
   },
+  'designer.ar.openArAnimated': { en: 'Open AR (Animated)', ar: 'فتح بالواقع المعزّز (متحرك)', he: 'פתיחה ב-AR (מונפש)' },
+  'designer.ar.viewInArAnimated': { en: 'View in AR (Animated)', ar: 'عرض بالواقع المعزّز (متحرك)', he: 'צפייה ב-AR (מונפש)' },
+  'designer.door.open': { en: 'Open Door', ar: 'فتح الباب', he: 'פתיחת דלת' },
+  'designer.door.close': { en: 'Close Door', ar: 'إغلاق الباب', he: 'סגירת דלת' },
 
   // Options panel
   'opt.title': { en: 'Design your shower', ar: 'صمّم دشك', he: 'עיצוב המקלחון' },

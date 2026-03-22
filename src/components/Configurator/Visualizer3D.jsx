@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows, Line, Text, Edges, Grid } from '@react-three/drei';
+import { DoorOpen, DoorClosed } from 'lucide-react';
 import { useConfiguratorStore } from '../../store/useConfiguratorStore';
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
@@ -1206,11 +1207,24 @@ const Visualizer3D = () => {
     const modelRef = useRef();
     const [selectedEdge, setSelectedEdge] = useState(null);
     const perspective = useConfiguratorStore((s) => s.perspective);
+    const isDoorOpen = useConfiguratorStore((s) => s.isDoorOpen);
+    const toggleDoor = useConfiguratorStore((s) => s.toggleDoor);
     const { t } = useI18n();
 
     return (
         <div className="w-full h-full overflow-hidden relative rounded-[inherit] bg-gradient-to-br from-[#e2e5ea] via-[#d4d8df] to-[#c5c9d2] ring-1 ring-black/5 shadow-inner">
-            <ARButton sceneRef={modelRef} />
+            <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 items-end">
+                <ARButton sceneRef={modelRef} />
+                <ARButton sceneRef={modelRef} animated />
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleDoor(); }}
+                    className="glass-button flex items-center gap-2"
+                >
+                    {isDoorOpen ? <DoorClosed size={20} /> : <DoorOpen size={20} />}
+                    <span>{isDoorOpen ? t('designer.door.close') : t('designer.door.open')}</span>
+                </button>
+            </div>
 
             <Canvas
                 shadows={perspective}
