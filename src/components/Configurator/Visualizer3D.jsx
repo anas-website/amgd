@@ -1131,25 +1131,6 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     <DimensionWithExtensions key={key} {...dim} />
                 ))}
 
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -yPos, 0]} receiveShadow>
-                <planeGeometry args={[24, 24]} />
-                <meshStandardMaterial color="#b4b4b4" roughness={0.94} metalness={0.02} />
-                {showEdges && <Edges threshold={15} color={CAD_EDGE} />}
-            </mesh>
-            <Grid
-                position={[0, -yPos + 0.002, 0]}
-                args={[24, 24]}
-                cellSize={0.25}
-                cellThickness={0.6}
-                cellColor="#9ca3af"
-                sectionSize={1}
-                sectionThickness={1.1}
-                sectionColor="#6b7280"
-                fadeDistance={40}
-                fadeStrength={1}
-                followCamera={false}
-                infiniteGrid
-            />
         </group>
     );
 };
