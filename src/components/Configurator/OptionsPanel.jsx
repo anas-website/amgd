@@ -50,6 +50,8 @@ const OptionsPanel = () => {
     showFrame,
   } = useConfiguratorStore();
 
+  const [selectedBoxPlace, setSelectedBoxPlace] = React.useState('floor');
+
   const handleChange = (e, key) => {
     const val = e.target.value;
     setDimensions({ [key]: val === '' ? '' : parseFloat(val) });
@@ -265,7 +267,8 @@ const OptionsPanel = () => {
                 <h4 className="text-sm font-medium text-white mb-2">{t('opt.boxesTitle')}</h4>
                 <div className="flex flex-col sm:flex-row gap-2 mb-2">
                   <select
-                    id="add-box-place"
+                    value={selectedBoxPlace}
+                    onChange={(e) => setSelectedBoxPlace(e.target.value)}
                     className={inp + ' text-sm py-2 flex-1'}
                   >
                     <option value="floor">{t('opt.floor')}</option>
@@ -276,8 +279,7 @@ const OptionsPanel = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      const sel = document.getElementById('add-box-place');
-                      addRoomBox(sel?.value || 'floor');
+                      addRoomBox(selectedBoxPlace);
                     }}
                     className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium touch-target shrink-0"
                   >
