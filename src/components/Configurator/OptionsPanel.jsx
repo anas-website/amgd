@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, FileText } from 'lucide-react';
+import { ChevronDown, FileText, X } from 'lucide-react';
 import { useConfiguratorStore } from '../../store/useConfiguratorStore';
 import LayoutSelector from './LayoutSelector';
 import { getDoorDimensions, exportDoorToDxf } from '../../utils/dxfDoorExport';
