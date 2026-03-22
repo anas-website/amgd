@@ -454,15 +454,15 @@ const BoxDimensionsWithExtensions = ({ center, half, widthCm, heightCm, depthCm,
                     renderOnTop={true}
                     textRotation={[-Math.PI / 2, 0, 0]}
                 />
-                {/* Height (along Y) - right-front edge, extending right */}
+                {/* Height (along Y) - right-front edge, extending forward */}
                 <DimensionWithExtensions
                     p1={brf}
                     p2={trf}
-                    extDir={[1, 0, 0]}
+                    extDir={[0, 0, 1]}
                     extLength={extOf('h')}
                     label={`${fmtDim(heightCm)} cm`}
                     color={color}
-                    labelOffset={[0.02, 0, 0]}
+                    labelOffset={[0, 0, 0.02]}
                     renderOnTop={true}
                 />
             </group>

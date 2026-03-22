@@ -285,19 +285,41 @@ const OptionsPanel = () => {
                   </button>
                 </div>
                 {roomBoxes.length > 0 && (
-                  <ul className="space-y-2 max-h-36 overflow-y-auto">
+                  <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {roomBoxes.map((box) => (
-                      <li key={box.id} className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-black/25 text-xs">
-                        <span className="text-slate-400 capitalize shrink-0">{box.place}</span>
-                        <input type="number" step="any" placeholder="x" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.x} onChange={(e) => updateRoomBox(box.id, { x: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
-                        <input type="number" step="any" placeholder="y" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.y} onChange={(e) => updateRoomBox(box.id, { y: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
-                        <input type="number" step="any" placeholder="z" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.z} onChange={(e) => updateRoomBox(box.id, { z: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
-                        <input type="number" step="any" placeholder="W" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.width} onChange={(e) => updateRoomBox(box.id, { width: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
-                        <input type="number" step="any" placeholder="H" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.height} onChange={(e) => updateRoomBox(box.id, { height: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
-                        <input type="number" step="any" placeholder="D" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.depth} onChange={(e) => updateRoomBox(box.id, { depth: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
-                        <button type="button" onClick={() => removeRoomBox(box.id)} className="text-red-400 hover:text-red-300 shrink-0 min-w-8 min-h-8">
-                          ×
-                        </button>
+                      <li key={box.id} className="flex flex-col gap-2 p-2.5 rounded-lg bg-black/25 border border-white/5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-300 capitalize font-medium">{box.place}</span>
+                          <button type="button" onClick={() => removeRoomBox(box.id)} className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-400/10 transition-colors">
+                            <X size={14} />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-500 w-3 text-center">X</span>
+                            <input type="number" step="any" className="w-full bg-black/40 rounded px-1.5 py-1 text-white border border-white/10 focus:border-blue-400 outline-none" value={box.x} onChange={(e) => updateRoomBox(box.id, { x: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-500 w-3 text-center">Y</span>
+                            <input type="number" step="any" className="w-full bg-black/40 rounded px-1.5 py-1 text-white border border-white/10 focus:border-blue-400 outline-none" value={box.y} onChange={(e) => updateRoomBox(box.id, { y: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-500 w-3 text-center">Z</span>
+                            <input type="number" step="any" className="w-full bg-black/40 rounded px-1.5 py-1 text-white border border-white/10 focus:border-blue-400 outline-none" value={box.z} onChange={(e) => updateRoomBox(box.id, { z: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-500 w-3 text-center">W</span>
+                            <input type="number" step="any" className="w-full bg-black/40 rounded px-1.5 py-1 text-white border border-white/10 focus:border-blue-400 outline-none" value={box.width} onChange={(e) => updateRoomBox(box.id, { width: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-500 w-3 text-center">H</span>
+                            <input type="number" step="any" className="w-full bg-black/40 rounded px-1.5 py-1 text-white border border-white/10 focus:border-blue-400 outline-none" value={box.height} onChange={(e) => updateRoomBox(box.id, { height: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-500 w-3 text-center">D</span>
+                            <input type="number" step="any" className="w-full bg-black/40 rounded px-1.5 py-1 text-white border border-white/10 focus:border-blue-400 outline-none" value={box.depth} onChange={(e) => updateRoomBox(box.id, { depth: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                          </div>
+                        </div>
                       </li>
                     ))}
                   </ul>
