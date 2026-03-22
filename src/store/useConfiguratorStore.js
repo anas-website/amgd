@@ -36,7 +36,11 @@ export const useConfiguratorStore = create((set) => ({
     isDoorOpen: false,
     doorAngle: 0,
 
+    /** @type {null | (() => { dataUrl?: string; width?: number; height?: number; error?: string })} — downscaled JPEG for PDF, from Visualizer3D */
+    getViewerSnapshot: null,
+
     // Actions
+    setViewerSnapshotGetter: (fn) => set({ getViewerSnapshot: fn }),
     setGlassType: (type) => set({ glassType: type }),
     setDimensions: (dims) => set((state) => ({ dimensions: { ...state.dimensions, ...dims } })),
     setRoomDimensions: (dims) => set((state) => ({ roomDimensions: { ...state.roomDimensions, ...dims } })),
@@ -75,5 +79,6 @@ export const useConfiguratorStore = create((set) => ({
             perspective: true,
             isDoorOpen: false,
             doorAngle: 0,
+            getViewerSnapshot: null,
         }),
 }));

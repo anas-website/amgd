@@ -250,6 +250,29 @@ export const messages = {
     ar: 'محيط الباب + ثقوب المفصلة والمقبض',
     he: 'קו מתאר + חורי ציר וידית',
   },
+  'opt.exportPdf': { en: 'Export PDF report', ar: 'تصدير تقرير PDF', he: 'ייצוא דוח PDF' },
+  'opt.exportPdfHelp': {
+    en: 'Includes a screenshot of the current 3D view and key configuration.',
+    ar: 'يتضمن لقطة للعرض ثلاثي الأبعاد الحالي والإعدادات الأساسية.',
+    he: 'כולל צילום מסך של התצוגה התלת־ממדית הנוכחית והגדרות עיקריות.',
+  },
+  'opt.exportPdfFailed': {
+    en: 'Could not create the PDF. Try again or use another browser.',
+    ar: 'تعذّر إنشاء ملف PDF. أعد المحاولة أو جرّب متصفحاً آخر.',
+    he: 'לא ניתן ליצור את קובץ ה-PDF. נסו שוב או דפדפן אחר.',
+  },
+  'opt.exportPdfNoView': {
+    en: '3D view is not ready yet. Wait a moment and try again.',
+    ar: 'العرض ثلاثي الأبعاد غير جاهز بعد. انتظر قليلاً ثم أعد المحاولة.',
+    he: 'תצוגת התלת־ממד עדיין לא מוכנה. המתינו רגע ונסו שוב.',
+  },
+  'opt.pdfReportTitle': { en: 'Shower configuration report', ar: 'تقرير إعداد الدش', he: 'דוח תצורת מקלחון' },
+  'opt.pdfViewSubtitle': {
+    en: 'Viewport: current camera view',
+    ar: 'المنظور: عرض الكاميرا الحالي',
+    he: 'תצוגה: מצלמה נוכחית',
+  },
+  'opt.pdfYes': { en: 'Yes', ar: 'نعم', he: 'כן' },
 
   // Layout selector
   'layout.title': { en: 'Layout', ar: 'التخطيط', he: 'פריסה' },

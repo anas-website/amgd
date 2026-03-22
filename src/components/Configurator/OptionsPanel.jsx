@@ -1,16 +1,25 @@
 import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, FileText } from 'lucide-react';
 import { useConfiguratorStore } from '../../store/useConfiguratorStore';
 import LayoutSelector from './LayoutSelector';
 import { getDoorDimensions, exportDoorToDxf } from '../../utils/dxfDoorExport';
+import { exportConfiguratorPdfReport } from '../../utils/pdfReportExport';
 import { useI18n } from '../../i18n';
 import clsx from 'clsx';
 
 const inp =
   'w-full bg-black/35 border border-white/12 rounded-xl px-3 py-2.5 sm:py-2.5 text-white placeholder:text-slate-500 focus:border-blue-400 focus:ring-1 focus:ring-blue-500/40 outline-none touch-target';
 
+const LAYOUT_LABEL_KEYS = {
+  straight: 'layout.straight',
+  corner: 'layout.corner',
+  'l-shape': 'layout.lShape',
+  'l-shape-2-doors': 'layout.lShape2',
+};
+
 const OptionsPanel = () => {
   const { t } = useI18n();
+  const getViewerSnapshot = useConfiguratorStore((s) => s.getViewerSnapshot);
   const {
     dimensions,
     setDimensions,
@@ -38,6 +47,7 @@ const OptionsPanel = () => {
     showBoxLabels,
     glassType,
     straightDoorWidthCm,
+    showFrame,
   } = useConfiguratorStore();
 
   const handleChange = (e, key) => {
@@ -70,15 +80,15 @@ const OptionsPanel = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div>
             <label className="block text-sm text-slate-400 mb-1.5">{t('opt.width')}</label>
-            <input type="number" value={dimensions.width} onChange={(e) => handleChange(e, 'width')} className={inp} />
+            <input type="number" step="any" value={dimensions.width} onChange={(e) => handleChange(e, 'width')} className={inp} />
           </div>
           <div>
             <label className="block text-sm text-slate-400 mb-1.5">{t('opt.height')}</label>
-            <input type="number" value={dimensions.height} onChange={(e) => handleChange(e, 'height')} className={inp} />
+            <input type="number" step="any" value={dimensions.height} onChange={(e) => handleChange(e, 'height')} className={inp} />
           </div>
           <div>
             <label className="block text-sm text-slate-400 mb-1.5">{t('opt.depth')}</label>
-            <input type="number" value={dimensions.depth} onChange={(e) => handleChange(e, 'depth')} className={inp} />
+            <input type="number" step="any" value={dimensions.depth} onChange={(e) => handleChange(e, 'depth')} className={inp} />
           </div>
           <div>
             <label className="block text-sm text-slate-400 mb-1.5">{t('opt.doorGap')}</label>
@@ -86,7 +96,7 @@ const OptionsPanel = () => {
               type="number"
               min="0"
               max="30"
-              step="1"
+              step="any"
               value={doorGapMm}
               onChange={(e) => setAccessory('doorGapMm', e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value)))}
               className={inp}
@@ -98,7 +108,7 @@ const OptionsPanel = () => {
               type="number"
               min="0"
               max="50"
-              step="1"
+              step="any"
               value={doorBottomGapMm}
               onChange={(e) => setAccessory('doorBottomGapMm', e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value)))}
               className={inp}
@@ -110,7 +120,7 @@ const OptionsPanel = () => {
               <input
                 type="number"
                 min="10"
-                step="1"
+                step="any"
                 placeholder={String(Math.round((dimensions.width - doorGapMm / 10) * 0.6))}
                 value={straightDoorWidthCm ?? ''}
                 onChange={(e) => {
@@ -173,6 +183,7 @@ const OptionsPanel = () => {
                   <label className="block text-xs text-slate-400 mb-1">{t('opt.width')}</label>
                   <input
                     type="number"
+                    step="any"
                     min="80"
                     value={roomDimensions.width}
                     onChange={(e) => handleRoomChange(e, 'width')}
@@ -183,6 +194,7 @@ const OptionsPanel = () => {
                   <label className="block text-xs text-slate-400 mb-1">{t('opt.depth')}</label>
                   <input
                     type="number"
+                    step="any"
                     min="60"
                     value={roomDimensions.depth}
                     onChange={(e) => handleRoomChange(e, 'depth')}
@@ -193,6 +205,7 @@ const OptionsPanel = () => {
                   <label className="block text-xs text-slate-400 mb-1">{t('opt.height')}</label>
                   <input
                     type="number"
+                    step="any"
                     min="200"
                     value={roomDimensions.height}
                     onChange={(e) => handleRoomChange(e, 'height')}
@@ -204,6 +217,7 @@ const OptionsPanel = () => {
                 <label className="block text-xs text-slate-400 mb-1">{t('opt.wallOffset')}</label>
                 <input
                   type="number"
+                  step="any"
                   value={wallOffset}
                   onChange={(e) => setAccessory('wallOffset', e.target.value === '' ? '' : parseFloat(e.target.value))}
                   className={inp + ' text-sm py-2'}
@@ -213,6 +227,7 @@ const OptionsPanel = () => {
                 <label className="block text-xs text-slate-400 mb-1">{t('opt.wallZ')}</label>
                 <input
                   type="number"
+                  step="any"
                   value={wallPositionZ}
                   onChange={(e) => setAccessory('wallPositionZ', e.target.value === '' ? '' : parseFloat(e.target.value))}
                   className={inp + ' text-sm py-2'}
@@ -223,6 +238,7 @@ const OptionsPanel = () => {
                   <label className="block text-xs text-slate-400 mb-1">{t('opt.leftWallLen')}</label>
                   <input
                     type="number"
+                    step="any"
                     min="30"
                     placeholder={String(roomDimensions.depth)}
                     value={roomDimensions.leftWallDepth ?? ''}
@@ -235,6 +251,7 @@ const OptionsPanel = () => {
                     <label className="block text-xs text-slate-400 mb-1">{t('opt.rightWallLen')}</label>
                     <input
                       type="number"
+                      step="any"
                       min="30"
                       placeholder={String(roomDimensions.depth)}
                       value={roomDimensions.rightWallDepth ?? ''}
@@ -272,12 +289,12 @@ const OptionsPanel = () => {
                     {roomBoxes.map((box) => (
                       <li key={box.id} className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-black/25 text-xs">
                         <span className="text-slate-400 capitalize shrink-0">{box.place}</span>
-                        <input type="number" placeholder="x" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.x} onChange={(e) => updateRoomBox(box.id, { x: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
-                        <input type="number" placeholder="y" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.y} onChange={(e) => updateRoomBox(box.id, { y: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
-                        <input type="number" placeholder="z" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.z} onChange={(e) => updateRoomBox(box.id, { z: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
-                        <input type="number" placeholder="W" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.width} onChange={(e) => updateRoomBox(box.id, { width: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
-                        <input type="number" placeholder="H" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.height} onChange={(e) => updateRoomBox(box.id, { height: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
-                        <input type="number" placeholder="D" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.depth} onChange={(e) => updateRoomBox(box.id, { depth: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                        <input type="number" step="any" placeholder="x" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.x} onChange={(e) => updateRoomBox(box.id, { x: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                        <input type="number" step="any" placeholder="y" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.y} onChange={(e) => updateRoomBox(box.id, { y: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                        <input type="number" step="any" placeholder="z" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.z} onChange={(e) => updateRoomBox(box.id, { z: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                        <input type="number" step="any" placeholder="W" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.width} onChange={(e) => updateRoomBox(box.id, { width: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                        <input type="number" step="any" placeholder="H" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.height} onChange={(e) => updateRoomBox(box.id, { height: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
+                        <input type="number" step="any" placeholder="D" className="w-12 bg-black/40 rounded px-1 py-1 text-white border border-white/10" value={box.depth} onChange={(e) => updateRoomBox(box.id, { depth: e.target.value === '' ? '' : parseFloat(e.target.value) })} />
                         <button type="button" onClick={() => removeRoomBox(box.id)} className="text-red-400 hover:text-red-300 shrink-0 min-w-8 min-h-8">
                           ×
                         </button>
@@ -404,8 +421,55 @@ const OptionsPanel = () => {
           </div>
         </div>
 
-        <div className="pt-4 border-t border-white/[0.08]">
+        <div className="pt-4 border-t border-white/[0.08] space-y-3">
           <label className="block text-sm text-slate-400 mb-2">{t('opt.export')}</label>
+          <button
+            type="button"
+            onClick={async () => {
+              const snap = getViewerSnapshot?.();
+              if (!snap) {
+                alert(t('opt.exportPdfNoView'));
+                return;
+              }
+              if (snap.error) {
+                alert(`Export error: ${snap.error}`);
+                return;
+              }
+              if (!snap.dataUrl) {
+                alert(t('opt.exportPdfNoView'));
+                return;
+              }
+              const layoutKey = LAYOUT_LABEL_KEYS[glassType] || 'layout.straight';
+              const hingeMsgKey = hingeType === 'glass-glass' ? 'opt.hinge.gg' : `opt.hinge.${hingeType}`;
+              const specLines = [
+                `${t('layout.title')}: ${t(layoutKey)}`,
+                `${t('opt.width')} / ${t('opt.height')} / ${t('opt.depth')}: ${dimensions.width} × ${dimensions.height} × ${dimensions.depth} cm`,
+                `${t('opt.doorGap')}: ${doorGapMm} mm — ${t('opt.doorBottomGap')}: ${doorBottomGapMm} mm`,
+                `${t('opt.handle')}: ${t(`opt.handle.${handleType}`)} — ${t('opt.hinge')}: ${t(hingeMsgKey)}`,
+                `${t('opt.frameColor')}: ${frameColor}`,
+              ];
+              if (showFrame) specLines.push(`${t('opt.blackFrame')}: ${t('opt.pdfYes')}`);
+              try {
+                exportConfiguratorPdfReport({
+                  snapshotDataUrl: snap.dataUrl,
+                  imageWidth: snap.width,
+                  imageHeight: snap.height,
+                  title: t('opt.pdfReportTitle'),
+                  subtitleLines: [new Date().toLocaleString(), t('opt.pdfViewSubtitle')],
+                  specLines,
+                  filename: `shower-config-${Date.now()}.pdf`,
+                });
+              } catch (e) {
+                console.error(e);
+                alert(t('opt.exportPdfFailed'));
+              }
+            }}
+            className="w-full px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold touch-target shadow-lg shadow-black/20 flex items-center justify-center gap-2"
+          >
+            <FileText size={18} className="opacity-90 shrink-0" />
+            {t('opt.exportPdf')}
+          </button>
+          <p className="text-xs text-slate-500 leading-relaxed">{t('opt.exportPdfHelp')}</p>
           <button
             type="button"
             onClick={() => {
@@ -422,7 +486,7 @@ const OptionsPanel = () => {
           >
             {t('opt.exportDxf')}
           </button>
-          <p className="text-xs text-slate-500 mt-2 leading-relaxed">{t('opt.exportHelp')}</p>
+          <p className="text-xs text-slate-500 leading-relaxed">{t('opt.exportHelp')}</p>
         </div>
       </div>
     </div>

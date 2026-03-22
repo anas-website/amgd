@@ -1,13 +1,22 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
-import { OrbitControls, Environment, ContactShadows, Line, Text, Edges, Grid } from '@react-three/drei';
+import { OrbitControls, Environment, ContactShadows, Line, Text, Edges, Grid, Billboard } from '@react-three/drei';
 import { DoorOpen, DoorClosed } from 'lucide-react';
 import { useConfiguratorStore } from '../../store/useConfiguratorStore';
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import ARButton from './ARButton';
 import { useI18n } from '../../i18n';
+import { getViewportJpegUrl } from '../../utils/viewerSnapshotCanvas';
 import part1StlUrl from '../../../Part1.STL?url';
+
+/** Whole numbers without fraction, otherwise one decimal (cm / mm labels). */
+function fmtDim(n) {
+    if (n == null || !Number.isFinite(Number(n))) return '—';
+    const x = Number(n);
+    const r = Math.round(x * 10) / 10;
+    return Number.isInteger(r) ? String(r) : r.toFixed(1);
+}
 
 /** SolidWorks-style shaded viewport: dark edge lines on light materials */
 const CAD_EDGE = '#1a1a1a';
@@ -30,7 +39,7 @@ const GlassPanel = ({
         {
             key: `${panelId}-top`,
             label: 'Top Edge',
-            mm: Math.round(width * 10),
+            mm: width * 10,
             line: [[-panelW / 2, panelH / 2, 0.012], [panelW / 2, panelH / 2, 0.012]],
             hitboxPos: [0, panelH / 2, 0.012],
             hitboxArgs: [panelW, 0.035, 0.045],
@@ -40,7 +49,7 @@ const GlassPanel = ({
         {
             key: `${panelId}-bottom`,
             label: 'Bottom Edge',
-            mm: Math.round(width * 10),
+            mm: width * 10,
             line: [[-panelW / 2, -panelH / 2, 0.012], [panelW / 2, -panelH / 2, 0.012]],
             hitboxPos: [0, -panelH / 2, 0.012],
             hitboxArgs: [panelW, 0.035, 0.045],
@@ -50,7 +59,7 @@ const GlassPanel = ({
         {
             key: `${panelId}-left`,
             label: 'Left Edge',
-            mm: Math.round(height * 10),
+            mm: height * 10,
             line: [[-panelW / 2, -panelH / 2, 0.012], [-panelW / 2, panelH / 2, 0.012]],
             hitboxPos: [-panelW / 2, 0, 0.012],
             hitboxArgs: [0.035, panelH, 0.045],
@@ -60,7 +69,7 @@ const GlassPanel = ({
         {
             key: `${panelId}-right`,
             label: 'Right Edge',
-            mm: Math.round(height * 10),
+            mm: height * 10,
             line: [[panelW / 2, -panelH / 2, 0.012], [panelW / 2, panelH / 2, 0.012]],
             hitboxPos: [panelW / 2, 0, 0.012],
             hitboxArgs: [0.035, panelH, 0.045],
@@ -145,7 +154,7 @@ const GlassPanel = ({
                             extDir={edge.dimExtDir}
                             extLength={0.06}
                             name={t('dim.edgeLength')}
-                            label={`${edge.mm} mm`}
+                            label={`${fmtDim(edge.mm)} mm`}
                             labelOffset={edge.labelOffset}
                         />
                     )}
@@ -309,6 +318,7 @@ const DimensionWithExtensions = ({
     labelOffset = [0, 0, 0],
     /** Draw above scene geometry (e.g. enclosure dims above glass) */
     renderOnTop = false,
+    textRotation = [0, 0, 0],
 }) => {
     const len = Math.sqrt(extDir[0] ** 2 + extDir[1] ** 2 + extDir[2] ** 2) || 1;
     const nx = extDir[0] / len;
@@ -325,12 +335,13 @@ const DimensionWithExtensions = ({
     /** Name further out along extension direction; value slightly inward (drawing-style) */
     const nameLift = 0.048;
     const valueIn = 0.02;
-    const namePos = [
+    // Swap name and value positions so name is under the value
+    const valuePos = [
         mid[0] + nx * nameLift,
         mid[1] + ny * nameLift,
         mid[2] + nz * nameLift,
     ];
-    const valuePos = [
+    const namePos = [
         mid[0] - nx * valueIn,
         mid[1] - ny * valueIn,
         mid[2] - nz * valueIn,
@@ -346,6 +357,11 @@ const DimensionWithExtensions = ({
         depthTest: !renderOnTop,
         renderOrder: renderOnTop ? 11 : undefined,
     };
+    
+    // For Text component, to ensure it renders on top of transparent glass
+    if (renderOnTop) {
+        textProps['material-depthTest'] = false;
+    }
 
     return (
         <group renderOrder={renderOnTop ? 10 : undefined} userData={{ isDimension: true }}>
@@ -354,15 +370,15 @@ const DimensionWithExtensions = ({
             <Line points={[q1, q2]} color={color} lineWidth={1} {...lineProps} />
             {dimName ? (
                 <>
-                    <Text position={namePos} fontSize={0.026} {...textProps} anchorY="middle">
+                    <Text position={namePos} rotation={textRotation} fontSize={0.026} {...textProps} anchorY="middle">
                         {dimName}
                     </Text>
-                    <Text position={valuePos} fontSize={0.036} {...textProps} anchorY="middle">
+                    <Text position={valuePos} rotation={textRotation} fontSize={0.036} {...textProps} anchorY="middle">
                         {label}
                     </Text>
                 </>
             ) : (
-                <Text position={mid} fontSize={0.042} {...textProps} anchorY="middle">
+                <Text position={mid} rotation={textRotation} fontSize={0.042} {...textProps} anchorY="middle">
                     {label}
                 </Text>
             )}
@@ -392,20 +408,72 @@ function assignExtLengthsBySpan(entries) {
 
 /** Aligned box dimensions (cm) with extension lines; center + half-extents in meters */
 /** Room-box dimensions only — red; all other dimensions use black */
-const BoxDimensionsWithExtensions = ({ center, half, widthCm, heightCm, depthCm, color = '#dc2626' }) => {
+const BoxDimensionsWithExtensions = ({ center, half, widthCm, heightCm, depthCm, color = '#dc2626', place }) => {
     const { t } = useI18n();
     const [hx, hy, hz] = half;
     const [cx, cy, cz] = center;
-    const blb = [cx - hx, cy - hy, cz - hz];
-    const brb = [cx + hx, cy - hy, cz - hz];
-    const blf = [cx - hx, cy - hy, cz + hz];
-    const tlb = [cx - hx, cy + hy, cz - hz];
+    
     const tiered = assignExtLengthsBySpan([
         { span: widthCm / 100, priority: 0, id: 'w' },
         { span: depthCm / 100, priority: 1, id: 'd' },
         { span: heightCm / 100, priority: 2, id: 'h' },
     ]);
     const extOf = (id) => tiered.find((r) => r.id === id)?.extLength ?? 0.075;
+
+    if (place === 'left') {
+        // Dimensions on the right side of the left box (x = cx + hx)
+        // Appearing through the glass from the front view
+        const tlf = [cx - hx, cy + hy, cz + hz]; // top-left-front
+        const trf = [cx + hx, cy + hy, cz + hz]; // top-right-front
+        const trb = [cx + hx, cy + hy, cz - hz]; // top-right-back
+        const brf = [cx + hx, cy - hy, cz + hz]; // bottom-right-front
+        const brb = [cx + hx, cy - hy, cz - hz]; // bottom-right-back
+
+        return (
+            <group>
+                {/* Width (depth into room, along X) - top-right edge, extending up */}
+                <DimensionWithExtensions
+                    p1={tlf}
+                    p2={trf}
+                    extDir={[0, 1, 0]}
+                    extLength={extOf('w')}
+                    label={`${fmtDim(widthCm)} cm`}
+                    color={color}
+                    labelOffset={[0, 0.03, 0]}
+                    renderOnTop={true}
+                />
+                {/* Depth (width along Z) - right-bottom edge, extending right */}
+                <DimensionWithExtensions
+                    p1={brb}
+                    p2={brf}
+                    extDir={[1, 0, 0]}
+                    extLength={extOf('d')}
+                    label={`${fmtDim(depthCm)} cm`}
+                    color={color}
+                    labelOffset={[0.02, 0, 0]}
+                    renderOnTop={true}
+                    textRotation={[-Math.PI / 2, 0, 0]}
+                />
+                {/* Height (along Y) - right-front edge, extending right */}
+                <DimensionWithExtensions
+                    p1={brf}
+                    p2={trf}
+                    extDir={[1, 0, 0]}
+                    extLength={extOf('h')}
+                    label={`${fmtDim(heightCm)} cm`}
+                    color={color}
+                    labelOffset={[0.02, 0, 0]}
+                    renderOnTop={true}
+                />
+            </group>
+        );
+    }
+
+    const blb = [cx - hx, cy - hy, cz - hz];
+    const brb = [cx + hx, cy - hy, cz - hz];
+    const blf = [cx - hx, cy - hy, cz + hz];
+    const tlb = [cx - hx, cy + hy, cz - hz];
+
     return (
         <group>
             <DimensionWithExtensions
@@ -413,30 +481,30 @@ const BoxDimensionsWithExtensions = ({ center, half, widthCm, heightCm, depthCm,
                 p2={brb}
                 extDir={[0, 0, -1]}
                 extLength={extOf('w')}
-                name={t('dim.boxWidth')}
-                label={`${Math.round(widthCm)} cm`}
+                label={`${fmtDim(widthCm)} cm`}
                 color={color}
                 labelOffset={[0, 0, -0.02]}
+                renderOnTop={true}
             />
             <DimensionWithExtensions
                 p1={blb}
                 p2={blf}
                 extDir={[0, 1, 0]}
                 extLength={extOf('d')}
-                name={t('dim.boxDepth')}
-                label={`${Math.round(depthCm)} cm`}
+                label={`${fmtDim(depthCm)} cm`}
                 color={color}
                 labelOffset={[0, 0.03, 0]}
+                renderOnTop={true}
             />
             <DimensionWithExtensions
                 p1={blb}
                 p2={tlb}
                 extDir={[-1, 0, 0]}
                 extLength={extOf('h')}
-                name={t('dim.boxHeight')}
-                label={`${Math.round(heightCm)} cm`}
+                label={`${fmtDim(heightCm)} cm`}
                 color={color}
                 labelOffset={[-0.025, 0, 0]}
+                renderOnTop={true}
             />
         </group>
     );
@@ -546,6 +614,7 @@ const RoomBoxes = ({
                     widthCm={dimCm.w}
                     heightCm={dimCm.h}
                     depthCm={dimCm.d}
+                    place={box.place}
                 />
             )}
         </group>
@@ -653,7 +722,7 @@ const RoomWidthMeasurement = ({ roomDimensions, wallPositionZ, floorY, wallShape
             extDir={[0, 0, 1]}
             extLength={0.08}
             name={t('dim.roomWidth')}
-            label={`${roomDimensions.width} cm`}
+            label={`${fmtDim(roomDimensions.width)} cm`}
             labelOffset={[0, 0.04, 0]}
         />
     );
@@ -692,7 +761,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
             extDir: [-1, 0, 0],
             extLength: 0.15,
             name: t('dim.height'),
-            label: `${Math.round(height)} cm`,
+            label: `${fmtDim(height)} cm`,
             labelOffset: [-0.04, 0, 0],
             renderOnTop: true,
         });
@@ -721,7 +790,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     extDir: [0, 1, 0],
                     extLength: tiered.find((r) => r.id === 'door')?.extLength ?? 0.08,
                     name: t('dim.doorWidth'),
-                    label: `${Math.round(doorW * 100)} cm`,
+                    label: `${fmtDim(doorW * 100)} cm`,
                     labelOffset: [0, 0.035, 0],
                     renderOnTop: true,
                 },
@@ -732,7 +801,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     extDir: [0, 1, 0],
                     extLength: tiered.find((r) => r.id === 'width')?.extLength ?? 0.16,
                     name: t('dim.overallWidth'),
-                    label: `${Math.round(width)} cm`,
+                    label: `${fmtDim(width)} cm`,
                     labelOffset: [0, 0.035, 0],
                     renderOnTop: true,
                 },
@@ -763,7 +832,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     extDir: [0, 1, 0],
                     extLength: tiered.find((r) => r.id === 'door')?.extLength ?? 0.08,
                     name: t('dim.doorFront'),
-                    label: `${Math.round(doorFrontW * 100)} cm`,
+                    label: `${fmtDim(doorFrontW * 100)} cm`,
                     labelOffset: [0, 0.035, 0],
                     renderOnTop: true,
                 },
@@ -774,7 +843,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     extDir: [0, 1, 0],
                     extLength: tiered.find((r) => r.id === 'depth')?.extLength ?? 0.12,
                     name: t('dim.depth'),
-                    label: `${Math.round(depth)} cm`,
+                    label: `${fmtDim(depth)} cm`,
                     labelOffset: [-0.04, 0.035, 0],
                     renderOnTop: true,
                 },
@@ -785,7 +854,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     extDir: [0, 1, 0],
                     extLength: tiered.find((r) => r.id === 'width')?.extLength ?? 0.16,
                     name: t('dim.overallWidth'),
-                    label: `${Math.round(width)} cm`,
+                    label: `${fmtDim(width)} cm`,
                     labelOffset: [0, 0.035, 0],
                     renderOnTop: true,
                 },
@@ -809,7 +878,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     extDir: [1, 0, 0],
                     extLength: tiered.find((r) => r.id === 'door')?.extLength ?? 0.08,
                     name: t('dim.doorWidth'),
-                    label: `${Math.round(width)} cm`,
+                    label: `${fmtDim(width)} cm`,
                     labelOffset: [0.05, 0, 0],
                     renderOnTop: true,
                 },
@@ -820,7 +889,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     extDir: [0, 1, 0],
                     extLength: tiered.find((r) => r.id === 'depth')?.extLength ?? 0.12,
                     name: t('dim.depth'),
-                    label: `${Math.round(depth)} cm`,
+                    label: `${fmtDim(depth)} cm`,
                     labelOffset: [-0.04, 0.035, 0],
                     renderOnTop: true,
                 },
@@ -831,7 +900,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     extDir: [0, 1, 0],
                     extLength: tiered.find((r) => r.id === 'width')?.extLength ?? 0.16,
                     name: t('dim.overallWidth'),
-                    label: `${Math.round(width)} cm`,
+                    label: `${fmtDim(width)} cm`,
                     labelOffset: [0, 0.035, 0],
                     renderOnTop: true,
                 },
@@ -863,7 +932,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     extDir: [0, 1, 0],
                     extLength: tiered.find((r) => r.id === 'doorF')?.extLength ?? 0.08,
                     name: t('dim.doorFront'),
-                    label: `${Math.round(width * 0.52)} cm`,
+                    label: `${fmtDim(width * 0.52)} cm`,
                     labelOffset: [0, 0.035, 0],
                     renderOnTop: true,
                 },
@@ -874,7 +943,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     extDir: [1, 0, 0],
                     extLength: tiered.find((r) => r.id === 'doorS')?.extLength ?? 0.08,
                     name: t('dim.doorSide'),
-                    label: `${Math.round(depth * 0.52)} cm`,
+                    label: `${fmtDim(depth * 0.52)} cm`,
                     labelOffset: [0.05, 0, 0],
                     renderOnTop: true,
                 },
@@ -885,7 +954,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     extDir: [0, 1, 0],
                     extLength: tiered.find((r) => r.id === 'depth')?.extLength ?? 0.12,
                     name: t('dim.depth'),
-                    label: `${Math.round(depth)} cm`,
+                    label: `${fmtDim(depth)} cm`,
                     labelOffset: [-0.04, 0.035, 0],
                     renderOnTop: true,
                 },
@@ -896,7 +965,7 @@ const Model = ({ selectedEdgeKey, onSelectEdge }) => {
                     extDir: [0, 1, 0],
                     extLength: tiered.find((r) => r.id === 'width')?.extLength ?? 0.16,
                     name: t('dim.overallWidth'),
-                    label: `${Math.round(width)} cm`,
+                    label: `${fmtDim(width)} cm`,
                     labelOffset: [0, 0.035, 0],
                     renderOnTop: true,
                 },
@@ -1142,6 +1211,23 @@ const VIEW_PRESETS = {
     right: { position: [6, 0, 0], up: [0, 1, 0] },
 };
 
+/** Registers a downscaled 2D canvas copy of the viewport for PDF (jsPDF embeds via canvas, not huge PNG data URLs). */
+function ViewerSnapshotBridge() {
+    const gl = useThree((s) => s.gl);
+    const setViewerSnapshotGetter = useConfiguratorStore((s) => s.setViewerSnapshotGetter);
+    useEffect(() => {
+        setViewerSnapshotGetter(() => {
+            try {
+                return getViewportJpegUrl(gl);
+            } catch (e) {
+                return { error: e.message || String(e) };
+            }
+        });
+        return () => setViewerSnapshotGetter(null);
+    }, [gl, setViewerSnapshotGetter]);
+    return null;
+}
+
 const CameraAndView = () => {
     const viewPreset = useConfiguratorStore((s) => s.viewPreset);
     const perspective = useConfiguratorStore((s) => s.perspective);
@@ -1234,6 +1320,7 @@ const Visualizer3D = () => {
                 <color attach="background" args={['#c8c8c8']} />
 
                 <CameraAndView />
+                <ViewerSnapshotBridge />
 
                 <hemisphereLight args={['#f5f5f5', '#909090']} intensity={0.55} />
                 <ambientLight intensity={0.35} />
@@ -1284,7 +1371,7 @@ const Visualizer3D = () => {
                 <div className="absolute bottom-3 end-3 p-3 rounded-xl bg-slate-900/90 backdrop-blur-md border border-white/10 text-xs text-white z-10 shadow-xl max-w-[14rem]">
                     <p className="font-semibold text-amber-400">{selectedEdge.label}</p>
                     <p className="text-slate-200">
-                        {selectedEdge.mm} mm ({(selectedEdge.mm / 10).toFixed(1)} cm)
+                        {fmtDim(selectedEdge.mm)} mm ({fmtDim(selectedEdge.mm / 10)} cm)
                     </p>
                 </div>
             )}
